@@ -6,7 +6,6 @@ Basically, loreley turns this:
 
 ```
 {bold}{fg 15}{bg 27} hello {from "" 29} there {to 16 ""},
-
 ```
 
 Into this:
