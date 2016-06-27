@@ -103,10 +103,6 @@ func (style *Style) putReset() string {
 func (style *Style) putBackground(color int) string {
 	style.background = color
 
-	if color == DefaultColor {
-		return style.putDefaultBackground()
-	}
-
 	return style.getStyleCodes(AttrBackground256, fmt.Sprint(color))
 }
 
@@ -128,10 +124,6 @@ func (style *Style) putDefaultForeground() string {
 
 func (style *Style) putForeground(color int) string {
 	style.foreground = color
-
-	if color == DefaultColor {
-		return style.putDefaultForeground()
-	}
 
 	return style.getStyleCodes(AttrForeground256, fmt.Sprint(color))
 }
