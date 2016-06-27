@@ -28,7 +28,7 @@ const (
 	// AttrReset is an esscape sequence part for resetting all attributes
 	AttrReset = `0`
 
-	// AtrrReverse is an escape sequence part for setting reverse display
+	// AttrReverse is an escape sequence part for setting reverse display
 	AttrReverse = `7`
 
 	// AttrNoReverse is an escape sequence part for setting reverse display off
@@ -48,11 +48,45 @@ const (
 	// color in 256 color mode
 	AttrBackground256 = `48;5`
 
-	// StyleReset is an placeholder for resetting all attributes.
+	// StyleReset is a placeholder for resetting all attributes.
 	StyleReset = `{reset}`
 
+	// StyleForeground is a Sprintf template for setting foreground color.
+	StyleForeground = `{fg %d}`
+
+	// StyleBackground is a Sprintf template for setting background color.
+	StyleBackground = `{bg %d}`
+
+	// StyleNoFg is a placeholder for resetting foreground color to the default
+	// state.
+	StyleNoFg = `{nofg}`
+
+	// StyleNoBg is a placeholder for resetting background color to the default
+	// state.
+	StyleNoBg = `{nobg}`
+
+	// StyleBold is a placeholder for setting bold display mode on.
+	StyleBold = `{bold}`
+
+	// StyleNoBold is a placeholder for setting bold display mode off.
+	StyleNoBold = `{nobold}`
+
+	// StyleReverse is a placeholder for setting reverse display mode on.
+	StyleReverse = `{reverse}`
+
+	// StyleNoReverse is a placeholder for setting reverse display mode off.
+	StyleNoReverse = `{noreverse}`
+)
+
+type (
+	// Color represents type for foreground or background color, 256-color
+	// based.
+	Color int
+)
+
+const (
 	// DefaultColor represents default foreground and background color.
-	DefaultColor = 0
+	DefaultColor Color = 0
 )
 
 var (
@@ -66,16 +100,73 @@ var (
 	DelimRight = `}`
 )
 
+// State represents foreground and background color, bold and reversed modes
+// in between of Style template execution, which may be usefull for various
+// extension functions.
+type State struct {
+	foreground Color
+	background Color
+
+	bold     bool
+	reversed bool
+}
+
+// String returns current state representation as loreley template.
+func (state State) String() string {
+	styles := []string{}
+
+	if state.foreground == DefaultColor {
+		styles = append(styles, StyleNoFg)
+	} else {
+		styles = append(
+			styles,
+			fmt.Sprintf(StyleForeground, state.foreground-1),
+		)
+	}
+
+	if state.background == DefaultColor {
+		styles = append(styles, StyleNoBg)
+	} else {
+		styles = append(
+			styles,
+			fmt.Sprintf(StyleBackground, state.background-1),
+		)
+	}
+
+	if state.bold {
+		styles = append(styles, StyleBold)
+	} else {
+		styles = append(styles, StyleNoBold)
+	}
+
+	if state.reversed {
+		styles = append(styles, StyleReverse)
+	} else {
+		styles = append(styles, StyleNoReverse)
+	}
+
+	return strings.Join(styles, "")
+}
+
 // Style is a compiled style. Can be used as text/template.
 type Style struct {
 	*template.Template
 
-	background int
-	foreground int
+	state *State
 
 	// NoColors can be set to true to disable escape sequence output,
 	// but still render underlying template.
 	NoColors bool
+}
+
+// GetState returns current style state in the middle of template execution.
+func (style *Style) GetState() State {
+	return *style.state
+}
+
+// SetState sets current style state in the middle of template execution.
+func (style *Style) SetState(state State) {
+	*style.state = state
 }
 
 // ExecuteToString is same, as text/template Execute, but return string
@@ -94,20 +185,22 @@ func (style *Style) ExecuteToString(
 }
 
 func (style *Style) putReset() string {
-	style.background = DefaultColor
-	style.foreground = DefaultColor
+	style.state.background = DefaultColor
+	style.state.foreground = DefaultColor
+	style.state.bold = false
+	style.state.reversed = false
 
 	return style.getStyleCodes(AttrReset)
 }
 
-func (style *Style) putBackground(color int) string {
-	style.background = color
+func (style *Style) putBackground(color Color) string {
+	style.state.background = color + 1
 
 	return style.getStyleCodes(AttrBackground256, fmt.Sprint(color))
 }
 
 func (style *Style) putDefaultBackground() string {
-	style.background = DefaultColor
+	style.state.background = DefaultColor
 
 	return style.getStyleCodes(
 		AttrBackground + AttrDefault,
@@ -115,38 +208,49 @@ func (style *Style) putDefaultBackground() string {
 }
 
 func (style *Style) putDefaultForeground() string {
-	style.foreground = DefaultColor
+	style.state.foreground = DefaultColor
 
 	return style.getStyleCodes(
 		AttrForeground + AttrDefault,
 	)
 }
 
-func (style *Style) putForeground(color int) string {
-	style.foreground = color
+func (style *Style) putForeground(color Color) string {
+	style.state.foreground = color + 1
 
 	return style.getStyleCodes(AttrForeground256, fmt.Sprint(color))
 }
 
 func (style *Style) putBold() string {
+	style.state.bold = true
+
 	return style.getStyleCodes(AttrBold)
 }
 
 func (style *Style) putNoBold() string {
+	style.state.bold = false
+
 	return style.getStyleCodes(AttrNoBold)
 }
 
 func (style *Style) putReverse() string {
+	style.state.reversed = true
+
 	return style.getStyleCodes(AttrReverse)
 }
 
 func (style *Style) putNoReverse() string {
+	style.state.reversed = false
+
 	return style.getStyleCodes(AttrNoReverse)
 }
 
-func (style *Style) putTransitionFrom(text string, nextBackground int) string {
-	previousBackground := style.background
-	previousForeground := style.foreground
+func (style *Style) putTransitionFrom(
+	text string,
+	nextBackground Color,
+) string {
+	previousBackground := style.state.background - 1
+	previousForeground := style.state.foreground - 1
 
 	return style.putForeground(previousBackground) +
 		style.putBackground(nextBackground) +
@@ -154,8 +258,8 @@ func (style *Style) putTransitionFrom(text string, nextBackground int) string {
 		style.putForeground(previousForeground)
 }
 
-func (style *Style) putTransitionTo(nextBackground int, text string) string {
-	previousForeground := style.foreground
+func (style *Style) putTransitionTo(nextBackground Color, text string) string {
+	previousForeground := style.state.foreground - 1
 
 	return style.putForeground(nextBackground) +
 		text +
@@ -173,11 +277,34 @@ func (style *Style) getStyleCodes(attr ...string) string {
 
 // Compile compiles style which is specified by string into Style,
 // optionally adding extended formatting functions.
+//
+// Avaiable functions to extend Go-lang template syntax:
+// * {bg <color>} - changes background color to the specified <color>.
+// * {fg <color>} - changes foreground color to the specified <color>.
+// * {nobg} - resets background color to the default.
+// * {nofg} - resets background color to the default.
+// * {bold} - set display mode to bold.
+// * {nobold} - disable bold display mode.
+// * {reverse} - set display mode to reverse.
+// * {noreverse} - disable reverse display mode.
+// * {reset} - resets all previously set styles.
+// * {from <text> <bg>} - renders <text> which foreground color equals
+//   current background color, and background color with specified <bg>
+//   color. Applies current foreground color and specified <bg> color
+//   to the following statements.
+// * {to <fg> <text>} - renders <text> with specified <fg> color as
+//   foreground color, and then use it as background color for the
+//   following statements.
+//
+// `extensions` is a additional functions, which will be available in
+// the template.
 func Compile(
 	text string,
 	extensions map[string]interface{},
 ) (*Style, error) {
-	style := &Style{}
+	style := &Style{
+		state: &State{},
+	}
 
 	functions := map[string]interface{}{
 		`bg`:        style.putBackground,
@@ -208,9 +335,24 @@ func Compile(
 		return nil, err
 	}
 
-	return &Style{
-		Template: template,
-	}, nil
+	style.Template = template
+
+	return style, nil
+}
+
+// CompileAndExecuteToString compiles Compile specified template and
+// immediately execute it with given `data`.
+func CompileAndExecuteToString(
+	text string,
+	extensions map[string]interface{},
+	data map[string]interface{},
+) (string, error) {
+	style, err := Compile(text, extensions)
+	if err != nil {
+		return "", err
+	}
+
+	return style.ExecuteToString(data)
 }
 
 // CompileWithReset is same as Compile, but appends {reset} to the end

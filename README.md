@@ -1,6 +1,6 @@
 # loreley
 
-Easy and extensible colorizer for the output of programs.
+Easy and extensible colorizer for the programs' output.
 
 Basically, loreley turns this:
 
@@ -11,7 +11,7 @@ Basically, loreley turns this:
 
 Into this:
 
-![2016-06-27-13t53t45](https://cloud.githubusercontent.com/assets/674812/16372502/c12c8a40-3c6e-11e6-95a0-31bcb32f9604.png)
+![2016-06-27-13t53t45](https://raw.githubusercontent.com/reconquest/loreley/master/demo.png)
 
 # Usage
 
@@ -22,17 +22,13 @@ import "fmt"
 import "github.com/reconquest/loreley"
 
 func main() {
-	style, err := loreley.CompileWithReset(
-		`{bold}{fg 15}{bg 27} hello {from "" 29} there {to 16 ""}`,
+	text, err := loreley.CompileAndExecuteToString(
+		`{bold}{fg 15}{bg 27} hello {from "" 29} {.where} {to 16 ""}{reset}`,
 		nil,
+		map[string]interface{}{"where": "there"},
 	)
 	if err != nil {
 		fmt.Errorf(`can't compile loreley template: %s`, err)
-	}
-
-	text, err := style.ExecuteToString(nil)
-	if err != nil {
-		fmt.Errorf(`can't execute loreley template: %s`, err)
 	}
 
 	fmt.Println(text)
