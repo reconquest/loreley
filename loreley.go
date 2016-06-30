@@ -3,9 +3,12 @@ package loreley
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 	"text/template"
+
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 const (
@@ -89,6 +92,23 @@ const (
 	DefaultColor Color = 0
 )
 
+type (
+	// ColorizeMode represents default behaviour for colorizing or not
+	// colorizing output/
+	ColorizeMode int
+)
+
+const (
+	// ColorizeAlways will tell loreley to colorize output no matter of what.
+	ColorizeAlways ColorizeMode = iota
+
+	// ColorizeOnTTY will tell loreley to colorize output only on TTY.
+	ColorizeOnTTY
+
+	// ColorizeNever turns of output colorizing.
+	ColorizeNever
+)
+
 var (
 	// CodeRegexp is an regular expression for matching escape codes.
 	CodeRegexp = regexp.MustCompile(CodeStart + `[^` + CodeEnd + `]+` + CodeEnd)
@@ -98,6 +118,15 @@ var (
 
 	// DelimRight is used for match template syntax (see Go-lang templates).
 	DelimRight = `}`
+
+	// Colorize controls whether loreley will output color codes. By default,
+	// loreley will try to detect TTY and print colorized output only if
+	// TTY is present.
+	Colorize = ColorizeOnTTY
+
+	// TTYStream is a stream FD (os.Stderr or os.Stdout), which
+	// will be checked by loreley when Colorize = ColorizeOnTTY.
+	TTYStream = int(os.Stderr.Fd())
 )
 
 // State represents foreground and background color, bold and reversed modes
@@ -345,6 +374,15 @@ func Compile(
 
 	style.Template = template
 
+	switch Colorize {
+	case ColorizeNever:
+		style.NoColors = true
+
+	case ColorizeOnTTY:
+		style.NoColors = !HasTTY(TTYStream)
+
+	}
+
 	return style, nil
 }
 
@@ -375,4 +413,9 @@ func CompileWithReset(
 // TrimStyles removes all escape codes from the given string.
 func TrimStyles(input string) string {
 	return CodeRegexp.ReplaceAllLiteralString(input, ``)
+}
+
+// HasTTY will return true if specified file descriptor is bound to a TTY.
+func HasTTY(fd int) bool {
+	return terminal.IsTerminal(fd)
 }

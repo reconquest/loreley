@@ -6,6 +6,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func init() {
+	Colorize = ColorizeAlways
+}
+
 func TestCompile_CompilesEmptyStringToEmptyStyle(t *testing.T) {
 	assertExecutedTemplate(t, ``, ``, nil)
 }
