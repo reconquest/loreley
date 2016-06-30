@@ -91,7 +91,7 @@ const (
 
 var (
 	// CodeRegexp is an regular expression for matching escape codes.
-	CodeRegexp = regexp.MustCompile(CodeStart + `[^` + CodeEnd + `]+`)
+	CodeRegexp = regexp.MustCompile(CodeStart + `[^` + CodeEnd + `]+` + CodeEnd)
 
 	// DelimLeft is used for match template syntax (see Go-lang templates).
 	DelimLeft = `{`
@@ -194,6 +194,10 @@ func (style *Style) putReset() string {
 }
 
 func (style *Style) putBackground(color Color) string {
+	if color == -1 {
+		return style.putDefaultBackground()
+	}
+
 	style.state.background = color + 1
 
 	return style.getStyleCodes(AttrBackground256, fmt.Sprint(color))
@@ -216,6 +220,10 @@ func (style *Style) putDefaultForeground() string {
 }
 
 func (style *Style) putForeground(color Color) string {
+	if color == -1 {
+		return style.putDefaultForeground()
+	}
+
 	style.state.foreground = color + 1
 
 	return style.getStyleCodes(AttrForeground256, fmt.Sprint(color))
