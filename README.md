@@ -116,6 +116,8 @@ Available template functions:
 * `{nobold}` set bold mode to off;
 * `{reverse}` set reverse mode on for the next text;
 * `{noreverse}` set reverse mode off;
+* `{underline}` set underline mode on for the next text;
+* `{nounderline}` set underline mode off;
 * `{reset}` resets all styles to default;
 * `{from <text> <bg>}` reuse current fg as specified `<text>`'s bg color,
   specified `<bg>` will be used as fg color and as bg color for the following
