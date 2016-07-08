@@ -34,7 +34,7 @@ func main() {
 }
 ```
 
-# Using with `text/tabwriter`
+# Colors in `text/tabwriter`
 
 Unfortunately, stdlib tabwriter does not implement proper column width
 calculation if you use escape sequences in your data to highlight some
