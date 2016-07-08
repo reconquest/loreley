@@ -34,6 +34,71 @@ func main() {
 }
 ```
 
+# Using with `text/tabwriter`
+
+Unfortunately, stdlib tabwriter does not implement proper column width
+calculation if you use escape sequences in your data to highlight some
+output.
+
+So, probably, You will see something like this trying tabwriter:
+
+[tabwriter-before](https://raw.githubusercontent.com/reconquest/loreley/master/tabwriter-before.png)
+
+Using loreley you can achieve exactly what you're expecting to see:
+
+[tabwriter-after](https://raw.githubusercontent.com/reconquest/loreley/master/tabwriter-after.png)
+
+```go
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"strings"
+	"text/tabwriter"
+
+	"github.com/reconquest/loreley"
+)
+
+const ()
+
+func main() {
+	buffer := &bytes.Buffer{}
+
+	writer := tabwriter.NewWriter(buffer, 2, 4, 2, ' ', tabwriter.FilterHTML)
+
+	writer.Write([]byte(strings.Join(
+		[]string{
+			"<underline>CORES<reset>",
+			"<underline>DESCRIPTION<reset>\n",
+		}, "\t",
+	)))
+
+	writer.Write([]byte(strings.Join(
+		[]string{
+			"<fg 15><bg 1><bold> 1 <reset> <fg 15><bg 243><bold> 3 <reset>",
+			"test\n",
+		}, "\t",
+	)))
+
+	writer.Flush()
+
+	loreley.DelimLeft = "<"
+	loreley.DelimRight = ">"
+
+	result, err := loreley.CompileAndExecuteToString(
+		buffer.String(),
+		nil,
+		nil,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Print(result)
+}
+```
+
 # Reference
 
 loreley extends Go-lang template system. So, fully syntax is supported with

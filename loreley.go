@@ -37,6 +37,12 @@ const (
 	// AttrNoReverse is an escape sequence part for setting reverse display off
 	AttrNoReverse = `27`
 
+	// AttrUnderline is an escape sequence part for setting underline display
+	AttrUnderline = `4`
+
+	// AttrNoUnderline is an escape sequence part for setting underline display off
+	AttrNoUnderline = `24`
+
 	// AttrBold is an escape sequence part for setting bold mode on
 	AttrBold = `1`
 
@@ -79,6 +85,12 @@ const (
 
 	// StyleNoReverse is a placeholder for setting reverse display mode off.
 	StyleNoReverse = `{noreverse}`
+
+	// StyleUnderline is a placeholder for setting reverse display mode on.
+	StyleUnderline = `{underline}`
+
+	// StyleNoUnderline is a placeholder for setting underline display mode off.
+	StyleNoUnderline = `{nounderline}`
 )
 
 type (
@@ -136,8 +148,9 @@ type State struct {
 	foreground Color
 	background Color
 
-	bold     bool
-	reversed bool
+	bold       bool
+	reversed   bool
+	underlined bool
 }
 
 // String returns current state representation as loreley template.
@@ -172,6 +185,12 @@ func (state State) String() string {
 		styles = append(styles, StyleReverse)
 	} else {
 		styles = append(styles, StyleNoReverse)
+	}
+
+	if state.underlined {
+		styles = append(styles, StyleUnderline)
+	} else {
+		styles = append(styles, StyleNoUnderline)
 	}
 
 	return strings.Join(styles, "")
@@ -282,6 +301,18 @@ func (style *Style) putNoReverse() string {
 	return style.getStyleCodes(AttrNoReverse)
 }
 
+func (style *Style) putUnderline() string {
+	style.state.underlined = true
+
+	return style.getStyleCodes(AttrUnderline)
+}
+
+func (style *Style) putNoUnderline() string {
+	style.state.underlined = false
+
+	return style.getStyleCodes(AttrNoUnderline)
+}
+
 func (style *Style) putTransitionFrom(
 	text string,
 	nextBackground Color,
@@ -344,17 +375,19 @@ func Compile(
 	}
 
 	functions := map[string]interface{}{
-		`bg`:        style.putBackground,
-		`fg`:        style.putForeground,
-		`nobg`:      style.putDefaultBackground,
-		`nofg`:      style.putDefaultForeground,
-		`bold`:      style.putBold,
-		`nobold`:    style.putNoBold,
-		`reverse`:   style.putReverse,
-		`noreverse`: style.putNoReverse,
-		`reset`:     style.putReset,
-		`from`:      style.putTransitionFrom,
-		`to`:        style.putTransitionTo,
+		`bg`:          style.putBackground,
+		`fg`:          style.putForeground,
+		`nobg`:        style.putDefaultBackground,
+		`nofg`:        style.putDefaultForeground,
+		`bold`:        style.putBold,
+		`nobold`:      style.putNoBold,
+		`reverse`:     style.putReverse,
+		`noreverse`:   style.putNoReverse,
+		`nounderline`: style.putNoUnderline,
+		`underline`:   style.putUnderline,
+		`reset`:       style.putReset,
+		`from`:        style.putTransitionFrom,
+		`to`:          style.putTransitionTo,
 	}
 
 	for name, function := range extensions {
