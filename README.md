@@ -42,11 +42,11 @@ output.
 
 So, probably, You will see something like this trying tabwriter:
 
-[tabwriter-before](https://raw.githubusercontent.com/reconquest/loreley/master/tabwriter-before.png)
+![tabwriter-before](https://raw.githubusercontent.com/reconquest/loreley/master/tabwriter-before.png)
 
 Using loreley you can achieve exactly what you're expecting to see:
 
-[tabwriter-after](https://raw.githubusercontent.com/reconquest/loreley/master/tabwriter-after.png)
+![tabwriter-after](https://raw.githubusercontent.com/reconquest/loreley/master/tabwriter-after.png)
 
 ```go
 package main
