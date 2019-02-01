@@ -124,3 +124,7 @@ Available template functions:
   text;
 * `{to <bg> <text>}` reuse current bg as specified `<text>`'s bg color,
   specified `<bg>` will be used as fg color for the following text;
+
+# License
+
+This project is licensed under the terms of the MIT license.
