@@ -100,6 +100,8 @@ type (
 )
 
 const (
+	UnknownColor Color = -1
+
 	// DefaultColor represents default foreground and background color.
 	DefaultColor Color = 0
 )
@@ -108,6 +110,16 @@ type (
 	// ColorizeMode represents default behaviour for colorizing or not
 	// colorizing output/
 	ColorizeMode int
+)
+
+type (
+	Flag int
+)
+
+const (
+	UnknownFlag Flag = -1
+	UnsetFlag        = 0
+	SetFlag          = 1
 )
 
 const (
@@ -148,48 +160,63 @@ type State struct {
 	foreground Color
 	background Color
 
-	bold       bool
-	reversed   bool
-	underlined bool
+	bold       Flag
+	reversed   Flag
+	underlined Flag
 }
 
 // String returns current state representation as loreley template.
 func (state State) String() string {
 	styles := []string{}
 
-	if state.foreground == DefaultColor {
+	switch state.foreground {
+	case UnknownColor:
+		// pass
+	case DefaultColor:
 		styles = append(styles, StyleNoFg)
-	} else {
+	default:
 		styles = append(
 			styles,
 			fmt.Sprintf(StyleForeground, state.foreground-1),
 		)
 	}
 
-	if state.background == DefaultColor {
-		styles = append(styles, StyleNoBg)
-	} else {
+	switch state.background {
+	case UnknownColor:
+		// pass
+	case DefaultColor:
+		styles = append(styles, StyleNoFg)
+	default:
 		styles = append(
 			styles,
 			fmt.Sprintf(StyleBackground, state.background-1),
 		)
 	}
 
-	if state.bold {
+	switch state.bold {
+	case UnknownFlag:
+		// pass
+	case SetFlag:
 		styles = append(styles, StyleBold)
-	} else {
+	case UnsetFlag:
 		styles = append(styles, StyleNoBold)
 	}
 
-	if state.reversed {
+	switch state.reversed {
+	case UnknownFlag:
+		// pass
+	case SetFlag:
 		styles = append(styles, StyleReverse)
-	} else {
+	case UnsetFlag:
 		styles = append(styles, StyleNoReverse)
 	}
 
-	if state.underlined {
+	switch state.underlined {
+	case UnknownFlag:
+		// pass
+	case SetFlag:
 		styles = append(styles, StyleUnderline)
-	} else {
+	case UnsetFlag:
 		styles = append(styles, StyleNoUnderline)
 	}
 
@@ -235,8 +262,8 @@ func (style *Style) ExecuteToString(
 func (style *Style) putReset() string {
 	style.state.background = DefaultColor
 	style.state.foreground = DefaultColor
-	style.state.bold = false
-	style.state.reversed = false
+	style.state.bold = UnsetFlag
+	style.state.reversed = UnsetFlag
 
 	return style.getStyleCodes(AttrReset)
 }
@@ -278,37 +305,37 @@ func (style *Style) putForeground(color Color) string {
 }
 
 func (style *Style) putBold() string {
-	style.state.bold = true
+	style.state.bold = SetFlag
 
 	return style.getStyleCodes(AttrBold)
 }
 
 func (style *Style) putNoBold() string {
-	style.state.bold = false
+	style.state.bold = UnsetFlag
 
 	return style.getStyleCodes(AttrNoBold)
 }
 
 func (style *Style) putReverse() string {
-	style.state.reversed = true
+	style.state.reversed = SetFlag
 
 	return style.getStyleCodes(AttrReverse)
 }
 
 func (style *Style) putNoReverse() string {
-	style.state.reversed = false
+	style.state.reversed = UnsetFlag
 
 	return style.getStyleCodes(AttrNoReverse)
 }
 
 func (style *Style) putUnderline() string {
-	style.state.underlined = true
+	style.state.underlined = SetFlag
 
 	return style.getStyleCodes(AttrUnderline)
 }
 
 func (style *Style) putNoUnderline() string {
-	style.state.underlined = false
+	style.state.underlined = UnsetFlag
 
 	return style.getStyleCodes(AttrNoUnderline)
 }
@@ -371,7 +398,13 @@ func Compile(
 	extensions map[string]interface{},
 ) (*Style, error) {
 	style := &Style{
-		state: &State{},
+		state: &State{
+			foreground: UnknownColor,
+			background: UnknownColor,
+			bold:       UnknownFlag,
+			reversed:   UnknownFlag,
+			underlined: UnknownFlag,
+		},
 	}
 
 	functions := map[string]interface{}{
